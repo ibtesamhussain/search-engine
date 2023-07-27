@@ -3,6 +3,7 @@ from flask import Flask,jsonify
 import json
 from flask import Flask, render_template, request
 import sqlite3
+import os
 
 #Opening and formating file so we can access it accordingly
 
@@ -147,11 +148,71 @@ for key, value in result2.items():
         print(3)
         result2[key] = 'NO DATA'
 
+from pptx import Presentation
+from pptx.util import Inches
+from pptx.dml.color import RGBColor
+
 
 
 # Create a cursor object to interact with the database
+def preprocess_text(text):
+    return text.replace('\r', '')
+
+def create_new_slide(prs):
+    layout = prs.slide_layouts[5]
+    slide = prs.slides.add_slide(layout)
+    return slide
 
 app = Flask(__name__)
+
+@app.route('/create', methods=['POST'])
+
+
+def create():
+
+    selected_values = request.form.getlist('selected_data')
+    verse_no = request.form.get('verse_no')
+    filename = request.form.get('filename') 
+    urdu_wbw_segments = []
+    if not filename:
+        return "Please provide a valid file name."
+    for value in selected_values:
+        urdu_wbw_segments.append(value)
+
+    # Create a text file and write the Urdu WBW segments into it
+    
+    X = Presentation()
+
+    Layout = X.slide_layouts[0]
+    first_slide = X.slides.add_slide(Layout)
+    a="Welome to 3rd lectures"
+    first_slide.shapes.title.text = a
+    first_slide.placeholders[1].text = "Created by Tutorialpoints"
+
+
+
+    for i in range(0,len(urdu_wbw_segments),3):
+        s=urdu_wbw_segments[i:i+3]
+        c=create_new_slide(X)
+        textbox = c.shapes.add_textbox(Inches(1), Inches(1.5),Inches(9), Inches(20)) 
+        textframe = textbox.text_frame
+        paragraph = textframe.add_paragraph()
+        for i in s:
+            c=preprocess_text(str(i))
+            paragraph.text=(str(c)+"\n")
+            paragraph = textframe.add_paragraph()
+            paragraph.font.color.rgb = RGBColor(0, 0, 255)
+        
+        textframe.word_wrap = True
+
+    
+
+    X.save(f"{filename}.pptx")
+    # Clear the session after saving to the file
+ 
+
+    return f"Urdu WBW segments have been saved to {filename}.txt successfully."
+
 
 
 @app.route('/')
